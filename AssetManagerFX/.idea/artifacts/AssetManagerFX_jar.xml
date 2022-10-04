@@ -1,0 +1,11 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="AssetManagerFX:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/AssetManagerFX_jar</output-path>
+    <root id="archive" name="AssetManagerFX.jar">
+      <element id="module-output" name="AssetManagerFX" />
+      <element id="directory" name="META-INFO">
+        <element id="dir-copy" path="$PROJECT_DIR$/META-INFO" />
+      </element>
+    </root>
+  </artifact>
+</component>
