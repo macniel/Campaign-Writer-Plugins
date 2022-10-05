@@ -1,9 +1,12 @@
 package de.macniel.srdcreature;
 
 import com.google.gson.*;
-import com.google.gson.stream.JsonReader;
 import de.macniel.campaignwriter.SDK.*;
+import de.macniel.campaignwriter.SDK.types.Actor;
+import de.macniel.campaignwriter.SDK.types.ActorNote;
+import de.macniel.campaignwriter.SDK.types.ActorNoteItem;
 import javafx.collections.FXCollections;
+import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
@@ -21,158 +24,73 @@ import javafx.util.Callback;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 
-public class CreatureImporter implements DataPlugin {
+public class CreatureImporter implements DataPlugin, Configurable {
 
-    class ActorNoteItem {
-
-        public enum ActorNoteItemType {
-            HEADER("Überschrift"),
-            TEXT("Text"),
-            RESOURCE("Resource"),
-            IMAGE("Bild"),
-
-            STRING("Zeichen");
-
-            public final String label;
-            ActorNoteItemType(String label) {
-                this.label = label;
-            }
-            ActorNoteItemType valueOfLabel(String label) {
-                for (ActorNoteItemType e: values()) {
-                    if (e.label.equals(label)) {
-                        return e;
-                    }
-                }
-                return null;
-            }
-        }
+    final String URL_SETTING = "SRDCreatureImport.url";
+    final String DEFAULT_URL = "https://gist.githubusercontent.com/tkfu/9819e4ac6d529e225e9fc58b358c3479/raw/d4df8804c25a662efc42936db60cfbc0a5b19db8/srd_5e_monsters.json";
 
 
-        ActorNoteItem.ActorNoteItemType type;
-
-        String label;
-
-        String content;
-
-        Integer max;
-
-        Integer value;
-
-        public void setLabel(String label) {
-            this.label = label;
-        }
-
-        public void setContent(String content) {
-            this.content = content;
-        }
-
-        public void setMax(Integer max) {
-            this.max = max;
-        }
-
-        public void setType(ActorNoteItem.ActorNoteItemType type) {
-            this.type = type;
-        }
-
-        public void setValue(Integer value) {
-            this.value = value;
-        }
-
-        public String getLabel() {
-            return label;
-        }
-
-        public ActorNoteItem.ActorNoteItemType getType() {
-            return type;
-        }
-
-        public Integer getMax() {
-            return max;
-        }
-
-        public Integer getValue() {
-            return value;
-        }
-
-        public String getContent() {
-            return content;
-        }
+    @Override
+    public String getConfigMenuItem() {
+        return "SRD Creature Import...";
     }
 
-    class Actor {
+    @Override
+    public void startConfigureTask(FileAccessLayerInterface fileAccessLayerInterface, RegistryInterface registryInterface) {
+        Stage wnd = new Stage();
 
-        List<ActorNoteItem> items;
+        VBox settings = new VBox();
+        settings.setFillWidth(true);
+        settings.setPadding(new Insets(5));
 
-        public List<ActorNoteItem> getItems() {
-            return items;
-        }
+        HBox urlLine = new HBox();
+        HBox.setHgrow(urlLine, Priority.ALWAYS);
 
-        public void setItems(List<ActorNoteItem> merged) {
-            this.items = merged;
-        }
+        Label urlLabel = new Label("url to fetch");
+        urlLabel.setPrefWidth(120);
+        TextField urlProp = new TextField();
+        fileAccessLayerInterface.getGlobal(URL_SETTING).ifPresentOrElse(urlProp::setText, () -> {
+            urlProp.setText(DEFAULT_URL);
+        });
 
-        public Actor() {
-            items = new ArrayList<>();
-        }
+        HBox.setHgrow(urlProp, Priority.ALWAYS);
 
+        ButtonBar controls = new ButtonBar();
+        controls.setPadding(new Insets(5));
+
+        Button close = new Button("Close");
+
+        urlLine.getChildren().addAll(urlLabel, urlProp);
+        settings.getChildren().add(urlLine);
+
+        Button ok = new Button("Save");
+
+        close.onActionProperty().set(e -> {
+            wnd.close();
+        });
+
+        ok.onActionProperty().set(e -> {
+            fileAccessLayerInterface.updateGlobal(URL_SETTING, urlProp.getText());
+            wnd.close();
+        });
+
+        controls.getButtons().addAll(ok, close);
+
+        BorderPane bp = new BorderPane();
+
+        bp.setCenter(settings);
+        bp.setBottom(controls);
+
+        wnd.setScene(new Scene(bp, 200, 200));
+        wnd.setTitle("SRD Creature Import");
+
+        wnd.showAndWait();
     }
-
-    class ActorNote extends Note<Actor> {
-
-        private Actor content;
-
-        private Date createdDate;
-        private Date lastModifiedDate;
-
-        @Override
-        public Date getCreatedDate() {
-            return createdDate;
-        }
-
-        @Override
-        public Date getLastModifiedDate() {
-            return lastModifiedDate;
-        }
-
-        @Override
-        public String getContent() {
-            return new Gson().toJson(content);
-        }
-
-        @Override
-        public Actor getContentAsObject() {
-            return content;
-        }
-
-        public void setContent(String content) {
-            this.content = new Gson().fromJson(content, Actor.class);
-        }
-
-        @Override
-        public String getType() {
-            return "actor";
-        }
-
-        public ActorNote() {
-            super();
-
-            this.content = new Actor();
-            this.setLabel("Neuer Akteur");
-            this.setReference(UUID.randomUUID());
-            this.createdDate = new Date();
-            this.lastModifiedDate = new Date();
-            this.content.items = new ArrayList<>();
-        }
-
-    }
-
-
-
 
     private CampaignFileInterface file;
     private Callback<CampaignFileInterface, Boolean> callback;
@@ -236,9 +154,23 @@ public class CreatureImporter implements DataPlugin {
         this.file = campaignFileInterface;
 
         try {
-            URL src = new URL("https://gist.githubusercontent.com/tkfu/9819e4ac6d529e225e9fc58b358c3479/raw/d4df8804c25a662efc42936db60cfbc0a5b19db8/srd_5e_monsters.json");
+            AtomicReference<URL> src = new AtomicReference<>();
 
-            JsonElement node = JsonParser.parseReader(new InputStreamReader(src.openStream()));
+            new FileAccessLayerFactory().get().getGlobal(URL_SETTING).ifPresentOrElse(url -> {
+                try {
+                    src.set(new URL(url));
+                } catch (MalformedURLException e) {
+                    throw new RuntimeException(e);
+                }
+            }, () -> {
+                try {
+                    src.set(new URL(DEFAULT_URL));
+                } catch (MalformedURLException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+
+            JsonElement node = JsonParser.parseReader(new InputStreamReader(src.get().openStream()));
 
             JsonArray list = node.getAsJsonArray();
             creatures = new ArrayList<>();
@@ -269,8 +201,6 @@ public class CreatureImporter implements DataPlugin {
                 creatures.add(actor);
             });
             items.setItems(FXCollections.observableArrayList(creatures));
-        } catch (MalformedURLException e) {
-            throw new RuntimeException(e);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

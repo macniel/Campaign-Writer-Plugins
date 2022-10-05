@@ -1,6 +1,6 @@
 <component name="ArtifactManager">
   <artifact type="jar" name="SRDCreature">
-    <output-path>$PROJECT_DIR$/out/artifacts/SRDCreature</output-path>
+    <output-path>$USER_HOME$/.campaignwriter/plugins</output-path>
     <root id="archive" name="SRDCreature.jar">
       <element id="directory" name="META-INFO">
         <element id="dir-copy" path="$PROJECT_DIR$/SRD Creature Import/META-INFO" />
