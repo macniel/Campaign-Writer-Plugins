@@ -12,6 +12,7 @@
     </annotationProcessing>
     <bytecodeTargetLevel>
       <module name="AssetManagerFX" target="18" />
+      <module name="CharacterSheet5E" target="18" />
       <module name="srdcreature" target="18" />
     </bytecodeTargetLevel>
   </component>

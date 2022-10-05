@@ -28,6 +28,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 public class CreatureImporter implements DataPlugin, Configurable {
 
@@ -37,16 +38,16 @@ public class CreatureImporter implements DataPlugin, Configurable {
 
     @Override
     public String getConfigMenuItem() {
-        return "SRD Creature Import...";
+        return "SRD Creature Import";
     }
 
     @Override
-    public void startConfigureTask(FileAccessLayerInterface fileAccessLayerInterface, RegistryInterface registryInterface) {
-        Stage wnd = new Stage();
+    public Consumer<Boolean> startConfigureTask(FileAccessLayerInterface fileAccessLayerInterface, RegistryInterface registryInterface, Tab parent) {
 
         VBox settings = new VBox();
         settings.setFillWidth(true);
-        settings.setPadding(new Insets(5));
+        settings.setPadding(new Insets(10));
+        settings.setSpacing(5);
 
         HBox urlLine = new HBox();
         HBox.setHgrow(urlLine, Priority.ALWAYS);
@@ -60,36 +61,16 @@ public class CreatureImporter implements DataPlugin, Configurable {
 
         HBox.setHgrow(urlProp, Priority.ALWAYS);
 
-        ButtonBar controls = new ButtonBar();
-        controls.setPadding(new Insets(5));
-
-        Button close = new Button("Close");
-
         urlLine.getChildren().addAll(urlLabel, urlProp);
         settings.getChildren().add(urlLine);
 
-        Button ok = new Button("Save");
+        parent.setContent(settings);
 
-        close.onActionProperty().set(e -> {
-            wnd.close();
-        });
-
-        ok.onActionProperty().set(e -> {
-            fileAccessLayerInterface.updateGlobal(URL_SETTING, urlProp.getText());
-            wnd.close();
-        });
-
-        controls.getButtons().addAll(ok, close);
-
-        BorderPane bp = new BorderPane();
-
-        bp.setCenter(settings);
-        bp.setBottom(controls);
-
-        wnd.setScene(new Scene(bp, 200, 200));
-        wnd.setTitle("SRD Creature Import");
-
-        wnd.showAndWait();
+        return aBoolean -> {
+            if(aBoolean) {
+                fileAccessLayerInterface.updateGlobal(URL_SETTING, urlProp.getText());
+            }
+        };
     }
 
     private CampaignFileInterface file;
